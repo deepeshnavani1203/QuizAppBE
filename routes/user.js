@@ -31,7 +31,7 @@ router.post("/signup", async (req, res, next) => {
       analytics: user.analytics,
     };
 
-    res.status(201).json(userResponse);
+    res.status(201).json({ message: "Signup successful", user: userResponse });
   } catch (error) {
     next(error);
   }
