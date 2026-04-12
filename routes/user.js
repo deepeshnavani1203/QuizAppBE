@@ -68,27 +68,6 @@ router.post("/login", async (req, res, next) => {
   }
 });
 
-router.post("/", async (req, res, next) => {
-  try {
-    const { firebaseId, name, email } = req.body;
-    if (!firebaseId || !name || !email) {
-      return res
-        .status(400)
-        .json({ error: "firebaseId, name, and email are required" });
-    }
-
-    let user = await User.findOne({ firebaseId });
-    if (user) {
-      return res.status(200).json(user);
-    }
-
-    user = new User({ firebaseId, name, email });
-    await user.save();
-    res.status(201).json(user);
-  } catch (error) {
-    next(error);
-  }
-});
 
 router.get("/:id/history", async (req, res, next) => {
   try {

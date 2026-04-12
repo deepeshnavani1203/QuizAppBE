@@ -30,6 +30,8 @@ router.get("/:id", async (req, res, next) => {
         questionText: question.questionText,
         options: question.options,
         topic: question.topic,
+        correctOptionIndex: question.correctOptionIndex,
+        difficulty: question.difficulty,
       })),
     };
 

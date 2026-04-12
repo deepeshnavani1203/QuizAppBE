@@ -22,7 +22,6 @@ const analyticsSchema = new mongoose.Schema(
 
 const userSchema = new mongoose.Schema(
   {
-    firebaseId: { type: String, unique: true, sparse: true },
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String },

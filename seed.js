@@ -61,6 +61,76 @@ function generateQuestions(topic, difficulty, count) {
           a: ["+", "-", "*", "/"],
           c: 0,
         },
+        {
+          q: "Which keyword is used to define a constant in Java?",
+          a: ["final", "static", "const", "immutable"],
+          c: 0,
+        },
+        {
+          q: "What is the default value of a boolean?",
+          a: ["false", "true", "0", "null"],
+          c: 0,
+        },
+        {
+          q: "Which method is the starting point of a Java program?",
+          a: ["main()", "start()", "init()", "run()"],
+          c: 0,
+        },
+        {
+          q: "Which type is used for large decimal numbers in Java?",
+          a: ["double", "float", "long", "int"],
+          c: 0,
+        },
+        {
+          q: "What does JDK stand for?",
+          a: ["Java Development Kit", "Java Design Kit", "Java Deployment Kit", "None"],
+          c: 0,
+        },
+        {
+          q: "Which command is used to compile Java code?",
+          a: ["javac", "java", "javadoc", "jar"],
+          c: 0,
+        },
+        {
+          q: "Which access modifier makes a member visible only within its class?",
+          a: ["private", "public", "protected", "default"],
+          c: 0,
+        },
+        {
+          q: "What is the result of 5 / 2 in Java (integer division)?",
+          a: ["2", "2.5", "3", "0"],
+          c: 0,
+        },
+        {
+          q: "Which keyword represents the current instance of a class?",
+          a: ["this", "self", "super", "current"],
+          c: 0,
+        },
+        {
+          q: "How many primitive data types are there in Java?",
+          a: ["8", "7", "6", "9"],
+          c: 0,
+        },
+        {
+          q: "Which keyword is used to catch an exception?",
+          a: ["catch", "try", "throw", "finally"],
+          c: 0,
+        },
+        {
+          q: "Which loop is guaranteed to execute at least once?",
+          a: ["do-while", "while", "for", "foreach"],
+          c: 0,
+        },
+        {
+          q: "What is the superclass of all Java classes?",
+          a: ["Object", "Class", "Base", "Root"],
+          c: 0,
+        },
+        {
+          q: "Which symbol is used for a single-line comment?",
+          a: ["//", "/*", "#", "--"],
+          c: 0,
+        },
       ],
       medium: [
         {
@@ -141,6 +211,56 @@ function generateQuestions(topic, difficulty, count) {
         {
           q: "Which keyword is used for exception handling?",
           a: ["try-catch", "if-else", "switch-case", "for-loop"],
+          c: 0,
+        },
+        {
+          q: "What is the difference between Array and ArrayList?",
+          a: ["Array is fixed size, ArrayList is dynamic", "Array is dynamic, ArrayList is fixed", "Both are same", "None"],
+          c: 0,
+        },
+        {
+          q: "Which keyword is used to invoke a parent class constructor?",
+          a: ["super", "parent", "this", "base"],
+          c: 0,
+        },
+        {
+          q: "What is an abstract class?",
+          a: ["A class that cannot be instantiated", "A class with no methods", "A class with only static methods", "None"],
+          c: 0,
+        },
+        {
+          q: "Which collection uses Key-Value pairs?",
+          a: ["Map", "List", "Set", "Queue"],
+          c: 0,
+        },
+        {
+          q: "What is the purpose of the 'finally' block?",
+          a: ["To execute code regardless of exception", "To catch exceptions", "To throw exceptions", "None"],
+          c: 0,
+        },
+        {
+          q: "Which keyword is used to create an interface?",
+          a: ["interface", "class", "abstract", "implements"],
+          c: 0,
+        },
+        {
+          q: "What is encapsulation?",
+          a: ["Hiding data using private variables", "Inheriting other classes", "Polymorphism", "None"],
+          c: 0,
+        },
+        {
+          q: "Which method is used to compare two strings content?",
+          a: ["equals()", "==", "compareTo()", "matches()"],
+          c: 0,
+        },
+        {
+          q: "What is the purpose of the 'break' statement?",
+          a: ["To exit a loop or switch", "To skip an iteration", "To end a program", "None"],
+          c: 0,
+        },
+        {
+          q: "What is the size of 'int' in Java?",
+          a: ["4 bytes", "2 bytes", "8 bytes", "1 byte"],
           c: 0,
         },
       ],
@@ -1686,14 +1806,23 @@ function generateQuestions(topic, difficulty, count) {
     },
   };
 
+  const pool = baseQuestions[topic] && baseQuestions[topic][difficulty] 
+                 ? baseQuestions[topic][difficulty] 
+                 : [];
+  
+  if (pool.length === 0) return [];
+
   const questions = [];
+  // Shuffle pool to ensure unique variety per seed
+  const shuffledBase = [...pool].sort(() => Math.random() - 0.5);
+
   for (let i = 0; i < count; i++) {
-    const baseQ =
-      baseQuestions[topic][difficulty][
-        Math.floor(Math.random() * baseQuestions[topic][difficulty].length)
-      ];
+    const baseQ = shuffledBase[i % pool.length];
+    // Only add suffix if we are forced to repeat (e.g. Learn mode > pool size)
+    const suffix = i >= pool.length ? ` (Var. ${Math.floor(i / pool.length) + 1})` : "";
+    
     questions.push({
-      questionText: baseQ.q,
+      questionText: baseQ.q + suffix,
       options: baseQ.a,
       correctOptionIndex: baseQ.c,
       topic: topic,
