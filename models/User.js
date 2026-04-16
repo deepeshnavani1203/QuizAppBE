@@ -5,6 +5,7 @@ const quizHistorySchema = new mongoose.Schema(
     resultId: { type: mongoose.Schema.Types.ObjectId, ref: "Result" },
     quizId: { type: mongoose.Schema.Types.ObjectId, ref: "Quiz" },
     score: { type: Number },
+    totalQuestions: { type: Number, default: 0 },
     date: { type: Date, default: Date.now },
   },
   { _id: false },

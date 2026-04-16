@@ -9,29 +9,19 @@ router.post("/signup", async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
     if (!name || !email || !password) {
-      return res
-        .status(400)
-        .json({ error: "name, email, and password are required" });
+      return res.status(400).json({ error: "name, email, and password are required" });
     }
-
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(409).json({ error: "User already exists" });
     }
-
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
     const user = new User({ name, email, password: hashedPassword });
     await user.save();
-
-    const userResponse = {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      quizHistory: user.quizHistory,
-      analytics: user.analytics,
-    };
-
-    res.status(201).json({ message: "Signup successful", user: userResponse });
+    res.status(201).json({
+      message: "Signup successful",
+      user: { id: user._id, name: user.name, email: user.email, quizHistory: user.quizHistory, analytics: user.analytics },
+    });
   } catch (error) {
     next(error);
   }
@@ -43,101 +33,93 @@ router.post("/login", async (req, res, next) => {
     if (!email || !password) {
       return res.status(400).json({ error: "email and password are required" });
     }
-
     const user = await User.findOne({ email });
     if (!user || !user.password) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
-
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
-
-    const userResponse = {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      quizHistory: user.quizHistory,
-      analytics: user.analytics,
-    };
-
-    res.json({ message: "Login successful", user: userResponse });
+    res.json({
+      message: "Login successful",
+      user: { id: user._id, name: user.name, email: user.email, quizHistory: user.quizHistory, analytics: user.analytics },
+    });
   } catch (error) {
     next(error);
   }
 });
 
-
+// GET history — must be before GET /:id
 router.get("/:id/history", async (req, res, next) => {
   try {
-    const user = await User.findById(req.params.id).populate(
-      "quizHistory.quizId",
-      "title category",
-    );
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
+    const user = await User.findById(req.params.id).populate("quizHistory.quizId", "title category");
+    if (!user) return res.status(404).json({ error: "User not found" });
     res.json(user.quizHistory || []);
   } catch (error) {
     next(error);
   }
 });
 
+// DELETE history — must be before GET /:id
+router.delete("/:id/history", async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    // Delete all Result documents for this user
+    await Result.deleteMany({ userId: req.params.id });
+
+    // Atomically clear quizHistory and reset analytics
+    await User.findByIdAndUpdate(
+      req.params.id,
+      {
+        $set: {
+          quizHistory: [],
+          "analytics.totalQuizzesTaken": 0,
+          "analytics.averageScore": 0,
+          "analytics.weakTopics": [],
+          "analytics.strengths": [],
+        },
+      },
+      { new: true }
+    );
+
+    res.json({ message: "History cleared successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// GET analytics — must be before GET /:id
 router.get("/:id/analytics", async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id);
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    if (user.analytics && user.analytics.totalQuizzesTaken !== undefined) {
-      return res.json(user.analytics);
-    }
+    if (!user) return res.status(404).json({ error: "User not found" });
 
     const results = await Result.find({ userId: user._id });
-    const summary = {
-      weakTopics: [],
-      strengths: [],
-      totalQuizzesTaken: results.length,
-      averageScore: 0,
-    };
+    const summary = { weakTopics: [], strengths: [], totalQuizzesTaken: results.length, averageScore: 0 };
 
     if (results.length > 0) {
       const topicMap = {};
       let totalPercent = 0;
-
       results.forEach((result) => {
-        const scorePercent =
-          result.totalQuestions > 0
-            ? (result.score / result.totalQuestions) * 100
-            : 0;
+        const scorePercent = result.totalQuestions > 0 ? (result.score / result.totalQuestions) * 100 : 0;
         totalPercent += scorePercent;
-
         result.topicPerformance.forEach((topic) => {
           if (!topic.topic) return;
-          if (!topicMap[topic.topic]) {
-            topicMap[topic.topic] = { correct: 0, total: 0 };
-          }
+          if (!topicMap[topic.topic]) topicMap[topic.topic] = { correct: 0, total: 0 };
           topicMap[topic.topic].correct += topic.correct || 0;
           topicMap[topic.topic].total += topic.total || 0;
         });
       });
-
       const topics = Object.entries(topicMap).map(([topic, data]) => ({
         topic,
         ratio: data.total > 0 ? data.correct / data.total : 0,
       }));
-
       const sortedTopics = topics.sort((a, b) => b.ratio - a.ratio);
-      summary.strengths = sortedTopics
-        .filter((topic) => topic.ratio >= 0.7)
-        .slice(0, 5)
-        .map((topic) => topic.topic);
-      summary.weakTopics = sortedTopics
-        .filter((topic) => topic.ratio <= 0.5)
-        .slice(0, 5)
-        .map((topic) => topic.topic);
+      summary.strengths = sortedTopics.filter((t) => t.ratio >= 0.7).slice(0, 5).map((t) => t.topic);
+      summary.weakTopics = sortedTopics.filter((t) => t.ratio <= 0.5).slice(0, 5).map((t) => t.topic);
       summary.averageScore = totalPercent / results.length;
     }
 
@@ -149,12 +131,11 @@ router.get("/:id/analytics", async (req, res, next) => {
   }
 });
 
+// GET single user — must be LAST among /:id routes
 router.get("/:id", async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id);
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
+    if (!user) return res.status(404).json({ error: "User not found" });
     res.json(user);
   } catch (error) {
     next(error);

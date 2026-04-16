@@ -36,6 +36,7 @@ router.post("/submit", async (req, res, next) => {
         resultId: result._id,
         quizId,
         score,
+        totalQuestions,
         date: new Date(),
       });
       const scorePercent =
