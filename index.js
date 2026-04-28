@@ -25,7 +25,9 @@ app.use((req, res) => {
 
 app.use((err, req, res, next) => {
   console.error(err);
-  res.status(err.status || 500).json({ error: err.message || "Internal Server Error", stack: err.stack });
+  res
+    .status(err.status || 500)
+    .json({ error: err.message || "Internal Server Error", stack: err.stack });
 });
 
 const PORT = process.env.PORT || 5000;
@@ -34,7 +36,7 @@ const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/quizapp";
 mongoose
   .connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => {
-    app.listen(PORT, () => {
+    app.listen(PORT, "0.0.0.0", () => {
       console.log(`Server running on port ${PORT}`);
     });
   })
